@@ -37,7 +37,7 @@ public class Server {
 
     private Logger logger = Logger.getLogger(this.toString());
 
-    private static Charset charset = Charset.forName("ISO-8859-2");
+    private static Charset charset = Charset.forName("UTF-8");
     public static final int BUFFER_SIZE = 2048;
     public static final char SEPARATOR = '|';
     private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
