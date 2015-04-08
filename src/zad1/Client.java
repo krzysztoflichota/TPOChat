@@ -8,8 +8,7 @@ package zad1;
 
 
 import javax.swing.*;
-import javax.swing.text.DefaultCaret;
-import javax.swing.text.Style;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -27,7 +26,7 @@ public class Client extends JFrame {
     private SocketChannel socketChannel;
     private String userName;
 
-    private JEditorPane chat;
+    private JTextPane chat;
     private JList<String> users;
     private JTextField messageBox;
     private JButton send;
@@ -101,17 +100,18 @@ public class Client extends JFrame {
             public void windowClosed(WindowEvent e) {
                 try {
                     logout();
-                } catch (IOException e1) {}
+                } catch (IOException e1) {
+                }
             }
         });
 
-        chat = new JEditorPane();
+        chat = new JTextPane();
         chat.setPreferredSize(new Dimension(300, 300));
         chat.setEditable(false);
-        ((DefaultCaret)chat.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        ((DefaultCaret) chat.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         users = new JList<>();
         users.setPreferredSize(new Dimension(150, 300));
-        messageBox = new JTextField(45);
+        messageBox = new JTextField(48);
         SendAction sendAction = new SendAction(socketChannel, messageBox, "Wyślij", this);
         send = new JButton(sendAction);
 
@@ -170,35 +170,41 @@ class SendAction extends AbstractAction {
 
 class ReadingThread implements Runnable {
 
-    private JEditorPane chat;
+    private JTextPane chat;
     private JList<String> usersList;
     private SocketChannel socketChannel;
-    private Style nickStyle;
+    private Style nickStyle, msgStyle;
 
     private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(Server.BUFFER_SIZE);
     private static Charset charset = Charset.forName("ISO-8859-2");
 
-    public ReadingThread(JEditorPane chat, JList<String> usersList, SocketChannel socketChannel) {
+    public ReadingThread(JTextPane chat, JList<String> usersList, SocketChannel socketChannel) {
         this.chat = chat;
         this.usersList = usersList;
         this.socketChannel = socketChannel;
+
+        StyledDocument styledDocument = chat.getStyledDocument();
+        nickStyle = styledDocument.addStyle("nickStyle", null);
+        StyleConstants.setForeground(nickStyle, Color.BLUE);
+        StyleConstants.setBold(nickStyle, true);
     }
 
     @Override
     public void run() {
-        while(socketChannel.isOpen()){
+        while (socketChannel.isOpen()) {
             try {
                 String data = read();
-                if(data == null) continue;
+                if (data == null) continue;
                 service(data);
-            } catch (IOException e) {}
+            } catch (IOException e) {
+            }
         }
     }
 
     private String read() throws IOException {
         byteBuffer.clear();
         int readBytes = socketChannel.read(byteBuffer);
-        if(readBytes <= 0) return null;
+        if (readBytes <= 0) return null;
 
         StringBuffer stringBuffer = new StringBuffer();
         while (readBytes > 0) {
@@ -211,23 +217,33 @@ class ReadingThread implements Runnable {
                 else stringBuffer.append(c);
             }
 
+            byteBuffer.clear();
             readBytes = socketChannel.read(byteBuffer);
         }
 
         return null;
     }
 
-    private void service(String data){
+    private void service(String data) {
         String[] splittedData = Server.splitRequest(data);
-        if(splittedData[0].equals("msg")) putMessage(splittedData[1]);
-        else if(splittedData[0].equals("users")) putListOfUsers(splittedData[1].split("\\|"));
+        if (splittedData[0].equals("msg")) putMessage(splittedData[1]);
+        else if (splittedData[0].equals("users")) putListOfUsers(splittedData[1].split("\\|"));
     }
 
-    private void putMessage(String msg){
-        chat.setText(chat.getText() + '\n' + msg);
+    private void putMessage(String msg) {
+        int msgStartInd = msg.indexOf(':');
+        msgStartInd = msg.indexOf(':', msgStartInd + 1);
+
+        String nick = msg.substring(0, msgStartInd);
+        Document doc = chat.getDocument();
+
+        try {
+            doc.insertString(doc.getLength(), nick, nickStyle);
+            doc.insertString(doc.getLength(), msg.substring(msgStartInd, msg.length()) + '\n', StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE));
+        } catch (BadLocationException e) {}
     }
 
-    private void putListOfUsers(String[] users){
+    private void putListOfUsers(String[] users) {
         usersList.setListData(users);
     }
 }

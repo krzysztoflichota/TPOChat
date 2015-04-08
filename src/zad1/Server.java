@@ -200,6 +200,7 @@ public class Server {
                 else stringBuffer.append(c);
             }
 
+            byteBuffer.clear();
             readBytes = socketChannel.read(byteBuffer);
         }
 
