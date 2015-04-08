@@ -173,7 +173,7 @@ class ReadingThread implements Runnable {
     private JTextPane chat;
     private JList<String> usersList;
     private SocketChannel socketChannel;
-    private Style nickStyle, msgStyle;
+    private Style nickStyle;
 
     private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(Server.BUFFER_SIZE);
     private static Charset charset = Charset.forName("UTF-8");
